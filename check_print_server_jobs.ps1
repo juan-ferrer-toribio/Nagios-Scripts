@@ -1,16 +1,6 @@
 # Script to check print queues of printers as they are registered on an MS print server 
 # It checks for current jobs in each printer and the status is decided by the command line arguments the total jobs statuses have priority over individual printers
 #
-# Version 0.1
-#	This script uses smcli to check the overall storage performance
-#	Currently there are no status codes returned so its mainly for information alerting
-#	It filters the objects and retains info only regarding the virtual disks
-#	
-#	Metrics:
-#		Current MB s/sec   Current IOs/sec	Current IO Latency
-#	
-#	If you use a high availlability cluster of controllers then the output will be only the relevant virtual disks assigned to each controller at each given time
-#	So you will be able to see which virtual disk is assigned to each node and its performance data
 #
 # http://www.opensource.org/licenses/gpl-2.0.php
 #
