@@ -17,19 +17,19 @@ lowAvailHosts=[]
 hundrendService=[]
 hundrendHost=[]
 
-nagiosHost="nagios.flexopack.com"
-hostToCheck="mailarchive.flexopack.local"
+nagiosHost="nagios server address"
+hostToCheck="nagios host name"
 serviceToCheck="http"
 
 
-apikey="0XqhgiJL5ttEclRoWAcDAFMeqPg7skCMh23Qk2Covlj0KapWJUPvQR3gGjmoGYbd"
+apikey="enter oyur nagios key here"
 print("")
 print("-----------------------------------------------------------------")
 print("Date of execution:"+str(datetime.now()))
 
 def serviceStatus(hostToCheck,serviceToCheck):
     url = "https://" + nagiosHost + "/nagiosxi/api/v1/objects/servicestatus?apikey=" + apikey + "&pretty=1&host_name=" + hostToCheck + "&name=" +serviceToCheck
-    #"https://nagios.flexopack.com/nagiosxi/api/v1/objects/servicestatus?apikey=0XqhgiJL5ttEclRoWAcDAFMeqPg7skCMh23Qk2Covlj0KapWJUPvQR3gGjmoGYbd&pretty=1&host_name=mailarchive.flexopack.local%20&name=http"
+    
 
     headers = {'content-type': 'application/json'}
 
