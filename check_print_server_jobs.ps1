@@ -1,103 +1,73 @@
-# Script to check print queues of printers as they are registered on an MS print server 
-# It checks for current jobs in each printer and the status is decided by the command line arguments the total jobs statuses have priority over individual printers
-#
+# Script to check print queues of printers as they are registered on an MS print server.
+# It checks for current jobs in each printer and the status is decided by the command 
+# line arguments the total jobs statuses have priority over individual printers.
 #
 # http://www.opensource.org/licenses/gpl-2.0.php
 #
-# Copyright (c) George Panou panou.g@gmail.com https://github.com/george-panou
+# Copyright (c) George Panou <panou.g@gmail.com> https://github.com/george-panou
+# Modified by Juan Ferrer Toribio <juan.ferrer.toribio@gmail.com>
 #
+# .\check_print_server_jobs.ps1  <InfoLevel-per-printer> <Waring-per-printer> <Critical-per-printer> <TotalWarning> <TotalCritical>
+# Sample call : .\check_print_server_jobs.ps1 3 5 7 10 15
 
-#.\check_print_server_jobs.ps1  <InfoLevel-per-printer> <Waring-per-printer> <Critical-per-printer> <TotalWarning> <TotalCritical>
-#Sample call : .\check_print_server_jobs.ps1 3 5 7 10 15
-
-#Command line arguments with default values...
-
+# Command line arguments with default values...
 param(
-
-	[int] $InfoLevel = 2,
-	[int] $Warning = 5,
-	[int] $Critical = 7,
-	[int] $TotalWarning = 10,
-	[int] $TotalCritical = 20
-  
+	[int] $infoLevel = 0,
+	[int] $warning = 5,
+	[int] $critical = 10,
+	[int] $totalWarning = 10,
+	[int] $totalCritical = 20
 )
 
-#Write-Output "You specified: $Arguments"
+# Write-Output "You specified: $Arguments"
 
-$Result  = @(Get-WMIObject Win32_PerfFormattedData_Spooler_PrintQueue | Select Name, @{Expression={$_.jobs};Label="CurrentJobs"}, TotalJobsPrinted, JobErrors)
+$result = @(Get-WMIObject Win32_PerfFormattedData_Spooler_PrintQueue | Select Name, @{Expression={$_.jobs};Label="CurrentJobs"}, TotalJobsPrinted, JobErrors)
 
-$InfoLevel -= 1
-$Warning -= 1
-$Critical -= 1
-$TotalWarning -= 1
-$TotalCritical -= 1
-	
-
-$OutputNagios = ""
-
-
+$flag = 0
+$totalJobs = 0
+$textOutput = ""
 $nl = [Environment]::NewLine
-$flag=0
 
+foreach ($line in $result) {
+	$printerName = $line.Name
+	$jobs = $line.CurrentJobs
+	$printerFlag = 0
 
-foreach ( $line in $Result ){
-	
-	$Name=$line.Name
-	$Jobs=$line.CurrentJobs
-	$k=0
-	$l=0
-    #Write-Output "$Name"
-	
-	#check each printer
-	if($Jobs -gt $Warning -and $Name -ne "_Total"){
-		 $warnOut += "$Name :  $Jobs, $nl" 
-		 if($flag -lt 2){
-			$flag=1
-			}
-	}
-	elseif($Jobs -gt $Critical  -and $Name -ne "_Total"){
-		 $critOut += "$Name :  $Jobs, $nl" 
-		 $flag=2
+	if ($printerName -eq "_Total") {
+		$totalJobs = $jobs
 
-	}elseif($Jobs -gt $InfoLevel -and $line.Name -ne "_Total"){
-		 $tmpOut += "$Name :  $Jobs, $nl" 
-	}
-	
-	#check total jobs of the print server
-	if($Name -eq "_Total" -and $Jobs -gt $TotalWarning){
-	
-		$tmpOut = "Total :  $Jobs, $nl" + $tmpOut
-		 if($flag -lt 2){
-			$flag=1
-			}
-	}elseif($Name -eq "_Total" -and $Jobs -gt $TotalCritical){
-	
-		$tmpOut = "Total :  $Jobs, $nl" + $tmpOut
-		$flag=2
-	}
-	
-	elseif($Name -eq "_Total"){
-		$tmpOut = "Total :  $Jobs, $nl" + $tmpOut
-	}
-	
-}
-	
-	
-if ($flag -eq 1){
-	$tmpOut = "Warning : " + $tmpOut
-	
-}
-elseif ($flag -eq 2){#
-	$tmpOut = "Critical : " + $tmpOut
-	
-}
-else{
-	$tmpOut = "OK : " + $tmpOut
-}
-$tmpOut = $tmpOut + $critOut 
-$tmpOut = $tmpOut + $warnOut
+		if ($jobs -ge $totalCritical) {
+			$printerFlag = 2
+		} elseif ($jobs -ge $totalWarning) {
+			$printerFlag = 1
+		}
+	} else {
+		if ($jobs -ge $critical) {
+			$printerFlag = 2
+		} elseif ($jobs -ge $warning) {
+			$printerFlag = 1
+		}
 
-Write-Output "$tmpOut"
+		if ($jobs -ge $infoLevel -or $printerFlag -gt 0) {
+			$textOutput += "${printerName}: $jobs$nl" 
+		}
+	}
+
+	if ($flag -lt $printerFlag) {
+		$flag = $printerFlag
+	}
+}
+
+switch ($flag) {
+	0 { $status = "OK" }
+	1 { $status = "WARNING" }
+	2 { $status = "CRITICAL" }
+	default { $status = "UNKNOWN" }
+}
+
+$statusOut = "SPOOLER $status - $totalJobs jobs$nl"
+$textOutput = $statusOut + $textOutput
+
+Write-Output "$textOutput"
 
 exit($flag)
-
